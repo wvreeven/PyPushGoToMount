@@ -246,10 +246,10 @@ class EmulatedMotorController(BaseMotorController):
         self.stepper.close()
         assert not self.attached
 
-    async def set_target_position_and_velocity(
+    async def move_to_target_position_at_velocity(
         self, target_position_in_steps: float, max_velocity_in_steps: float
     ) -> None:
-        """Set the target position and maximum velocity in the stepper motor.
+        """Move the motor to the provided position at the provided maximum velocity and stop.
 
         Parameters
         ----------

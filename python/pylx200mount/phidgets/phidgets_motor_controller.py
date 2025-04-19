@@ -3,6 +3,9 @@ __all__ = ["PhidgetsMotorController"]
 import logging
 
 from astropy.coordinates import Angle
+from Phidget22.Devices.Stepper import Stepper, StepperControlMode
+from Phidget22.Net import Net, PhidgetServerType
+from Phidget22.PhidgetException import PhidgetException
 
 from ..motor.base_motor_controller import BaseMotorController
 
@@ -28,15 +31,6 @@ class PhidgetsMotorController(BaseMotorController):
     ) -> None:
         name = "Alt" if hub_port == 0 else "Az"
         super().__init__(log=log, name=name, conversion_factor=conversion_factor)
-
-        try:
-            from Phidget22.Devices.Stepper import Stepper
-            from Phidget22.Net import Net, PhidgetServerType
-            from Phidget22.PhidgetException import PhidgetException  # noqa
-        except ImportError:
-            self.log.warn(
-                "Couldn't import the Phidgets22 module. Continuing without Phidgets support."
-            )
 
         if is_remote:
             Net.enableServerDiscovery(PhidgetServerType.PHIDGETSERVER_DEVICEREMOTE)
@@ -77,10 +71,10 @@ class PhidgetsMotorController(BaseMotorController):
         self.stepper.close()
         assert not self.attached
 
-    async def set_target_position_and_velocity(
+    async def move_to_target_position_at_velocity(
         self, target_position_in_steps: float, max_velocity_in_steps: float
     ) -> None:
-        """Set the target position and maximum velocity in the stepper motor.
+        """Move the motor to the provided position at the provided maximum velocity and stop.
 
         Parameters
         ----------
@@ -89,6 +83,11 @@ class PhidgetsMotorController(BaseMotorController):
         max_velocity_in_steps : `float`
             The maximum velocity [steps/sec].
         """
-        assert self.stepper is not None
+        # Switch control mode if necessary.
+        if self.stepper.getControlMode() != StepperControlMode.CONTROL_MODE_STEP:
+            self.stepper.setEngaged(False)
+            self.stepper.setControlMode(StepperControlMode.CONTROL_MODE_STEP)
+            self.stepper.setEngaged(True)
+
         self.stepper.setVelocityLimit(abs(max_velocity_in_steps))
         self.stepper.setTargetPosition(target_position_in_steps)

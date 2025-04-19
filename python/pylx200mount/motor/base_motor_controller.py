@@ -186,7 +186,7 @@ class BaseMotorController(ABC):
         ) * self._conversion_factor
         target_position_in_steps = self._get_target_position_in_steps(target_position)
 
-        await self.set_target_position_and_velocity(
+        await self.move_to_target_position_at_velocity(
             target_position_in_steps, max_velocity_in_steps
         )
 
@@ -207,7 +207,7 @@ class BaseMotorController(ABC):
         target_position_in_steps = self._get_target_position_in_steps(target_position)
         max_velocity_in_steps = self._max_velocity * slew_rate / SlewRate.HIGH
 
-        await self.set_target_position_and_velocity(
+        await self.move_to_target_position_at_velocity(
             target_position_in_steps, max_velocity_in_steps
         )
 
@@ -226,7 +226,7 @@ class BaseMotorController(ABC):
         """
         target_position_in_steps = self._get_target_position_in_steps(target_position)
         max_velocity_in_steps = (self._position - target_position_in_steps) / timediff
-        await self.set_target_position_and_velocity(
+        await self.move_to_target_position_at_velocity(
             target_position_in_steps, max_velocity_in_steps
         )
 
@@ -264,10 +264,10 @@ class BaseMotorController(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_target_position_and_velocity(
+    async def move_to_target_position_at_velocity(
         self, target_position_in_steps: float, max_velocity_in_steps: float
     ) -> None:
-        """Set the target position and maximum velocity in the stepper motor.
+        """Move the motor to the provided position at the provided maximum velocity and stop.
 
         Parameters
         ----------

@@ -25,7 +25,7 @@ class TestPhidgetsMotorController(IsolatedAsyncioTestCase):
     async def test_phidgets_motor_controller(self) -> None:
         await self.pmc.connect()
         assert self.pmc.attached
-        await self.pmc.set_target_position_and_velocity(
+        await self.pmc.move_to_target_position_at_velocity(
             target_position_in_steps=10000.0, max_velocity_in_steps=10000.0
         )
         await self.pmc.disconnect()
