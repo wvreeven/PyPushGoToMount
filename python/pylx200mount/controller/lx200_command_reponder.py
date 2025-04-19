@@ -414,7 +414,7 @@ class Lx200CommandResponder:
 
         The hand controller doesn't exist in this case."""
         self.log.debug("get_distance_bars received.")
-        return "0x7f" + HASH if self.mount_controller.is_slewing else HASH
+        return "0x7f" + HASH
 
     async def get_alignment_status(self) -> str:
         """Get the alignment status."""
