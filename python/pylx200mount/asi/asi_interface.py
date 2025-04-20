@@ -177,7 +177,7 @@ class AsiControlCapsStruct(ctypes.Structure):
 
 
 class AsiExposureStatus(enum.Enum):
-    """Use under snap shot mode to obtain exposure status."""
+    """Use under snapshot mode to obtain exposure status."""
 
     ASI_EXP_IDLE = 0
     ASI_EXP_WORKING = 1
@@ -236,13 +236,7 @@ def _get_lib_dir_and_extension() -> typing.Tuple[str, str]:
 class AsiLib:
     def __init__(self) -> None:
         lib_dir, extension = _get_lib_dir_and_extension()
-        libname = (
-            pathlib.Path(__file__).parent
-            / "zwo"
-            / "lib"
-            / lib_dir
-            / f"libASICamera2.{extension}"
-        )
+        libname = pathlib.Path(__file__).parent / "zwo" / "lib" / lib_dir / f"libASICamera2.{extension}"
 
         self.lib = ctypes.CDLL(str(libname))
 
@@ -420,9 +414,7 @@ class AsiCamera(BaseCamera):
         self.log.debug("Getting image parameters.")
         camera_info_struct = AsiCameraInfoStruct()
         error_code = AsiErrorCode(
-            self.asi_lib.lib.ASIGetCameraPropertyByID(
-                self.camera_id, camera_info_struct
-            )
+            self.asi_lib.lib.ASIGetCameraPropertyByID(self.camera_id, camera_info_struct)
         )
         assert error_code == AsiErrorCode.ASI_SUCCESS, error_code
 
@@ -435,9 +427,7 @@ class AsiCamera(BaseCamera):
         self.log.debug("Ensuring NORMAL mode.")
         camera_support_mode_struct = AsiSupportedModeStruct()
         error_code = AsiErrorCode(
-            self.asi_lib.lib.ASIGetCameraSupportMode(
-                self.camera_id, camera_support_mode_struct
-            )
+            self.asi_lib.lib.ASIGetCameraSupportMode(self.camera_id, camera_support_mode_struct)
         )
         assert error_code == AsiErrorCode.ASI_SUCCESS, error_code
         assert camera_support_mode_struct.SupportedCameraMode[0] == 0
@@ -493,9 +483,7 @@ class AsiCamera(BaseCamera):
         img_buffer = ctypes.create_string_buffer(img_buffer_size)
         self.log.debug("Blocking get the latest image.")
         error_code = AsiErrorCode(
-            self.asi_lib.lib.ASIGetVideoData(
-                self.camera_id, img_buffer, img_buffer_size, self.exposure_time
-            )
+            self.asi_lib.lib.ASIGetVideoData(self.camera_id, img_buffer, img_buffer_size, self.exposure_time)
         )
         assert error_code == AsiErrorCode.ASI_SUCCESS, error_code
 

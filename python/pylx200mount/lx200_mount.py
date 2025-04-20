@@ -28,9 +28,7 @@ class LX200Mount:
         """Start the TCP/IP server."""
         self.log.info("Start called.")
         await self.responder.start()
-        self._server = await asyncio.start_server(
-            self.cmd_loop, port=self.port, family=socket.AF_INET
-        )
+        self._server = await asyncio.start_server(self.cmd_loop, port=self.port, family=socket.AF_INET)
         self.log.info(
             "Server started on host "
             f"{self._server.sockets[0].getsockname()[0]}"
@@ -65,9 +63,7 @@ class LX200Mount:
             self._writer.write(reply)
             await self._writer.drain()
 
-    async def cmd_loop(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
+    async def cmd_loop(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         """Execute commands and output replies."""
         self._writer = writer
 

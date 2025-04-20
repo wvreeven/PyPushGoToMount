@@ -13,9 +13,7 @@ class TestAsiInterface(IsolatedAsyncioTestCase):
             mock_asi_lib.ASIOpenCamera.return_value = 0
             mock_asi_lib.ASIInitCamera.return_value = 0
             mock_asi_lib.ASIGetCameraPropertyByID.return_value = 0
-            mock_asi_lib.ASIGetCameraSupportMode.side_effect = (
-                self.set_asi_supported_mode_struct
-            )
+            mock_asi_lib.ASIGetCameraSupportMode.side_effect = self.set_asi_supported_mode_struct
             mock_asi_lib.ASISetROIFormat.return_value = 0
             mock_asi_lib.ASISetStartPos.return_value = 0
             mock_asi_lib.ASISetControlValue.return_value = 0
@@ -37,9 +35,7 @@ class TestAsiInterface(IsolatedAsyncioTestCase):
     async def test_get_image(self) -> None:
         await self.asi_camera.get_image()
 
-    def set_asi_supported_mode_struct(
-        self, _: int, camera_support_mode_struct: ctypes.Structure
-    ) -> int:
+    def set_asi_supported_mode_struct(self, _: int, camera_support_mode_struct: ctypes.Structure) -> int:
         camera_support_mode_struct.SupportedCameraMode = (ctypes.c_int * 16)(
             0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
         )

@@ -56,12 +56,8 @@ class PlateSolver(BasePlateSolver):
         if math.isclose(self.fov_estimate, 0.0):
             # Estimate of the size of the field of view [deg].
             max_img_size = max(self.camera.img_width, self.camera.img_height)
-            self.fov_estimate = (
-                max_img_size * self.camera.pixel_size * FOV_FACTOR / self.focal_length
-            )
-            self.log.info(
-                f"{self.camera.img_width=}, {self.camera.img_height=}, {self.focal_length=}"
-            )
+            self.fov_estimate = max_img_size * self.camera.pixel_size * FOV_FACTOR / self.focal_length
+            self.log.info(f"{self.camera.img_width=}, {self.camera.img_height=}, {self.focal_length=}")
 
         self.log.debug(f"{self.fov_estimate=}")
 

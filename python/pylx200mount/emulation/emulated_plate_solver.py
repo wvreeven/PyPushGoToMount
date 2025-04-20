@@ -6,6 +6,5 @@ from ..plate_solver import BasePlateSolver
 
 
 class EmulatedPlateSolver(BasePlateSolver):
-
     async def solve(self) -> SkyCoord:
         raise RuntimeError("Exception thrown on purpose.")

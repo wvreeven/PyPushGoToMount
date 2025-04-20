@@ -47,9 +47,7 @@ class PhidgetsMotorController(BaseMotorController):
         self.stepper.setOnVelocityChangeHandler(self.on_velocity_change)
         self.stepper.setOnErrorHandler(self.on_error)
 
-        self._position_offset = round(
-            (initial_position / self._conversion_factor).value
-        )
+        self._position_offset = round((initial_position / self._conversion_factor).value)
 
     def on_error(self, code: int, description: str) -> None:
         self.log.error(f"{code=!s} -> {description=!s}")
@@ -91,3 +89,18 @@ class PhidgetsMotorController(BaseMotorController):
 
         self.stepper.setVelocityLimit(abs(max_velocity_in_steps))
         self.stepper.setTargetPosition(target_position_in_steps)
+
+    async def track_at_velocity(self, max_velocity_in_steps: float) -> None:
+        """Track the motor at the provided maximum velocity and stop.
+
+        Parameters
+        ----------
+        max_velocity_in_steps : `float`
+            The maximum velocity [steps/sec].
+        """
+        if self.stepper.getControlMode() != StepperControlMode.CONTROL_MODE_RUN:
+            self.stepper.setEngaged(False)
+            self.stepper.setControlMode(StepperControlMode.CONTROL_MODE_RUN)
+            self.stepper.setEngaged(True)
+
+        self.stepper.setVelocityLimit(max_velocity_in_steps)

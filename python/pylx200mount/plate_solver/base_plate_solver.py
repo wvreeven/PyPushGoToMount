@@ -12,9 +12,7 @@ from ..camera import BaseCamera
 class BasePlateSolver(abc.ABC):
     """Base class for plate solvers."""
 
-    def __init__(
-        self, camera: BaseCamera, focal_length: float, log: logging.Logger
-    ) -> None:
+    def __init__(self, camera: BaseCamera, focal_length: float, log: logging.Logger) -> None:
         self.log = log.getChild(type(self).__name__)
         self.camera = camera
         self.focal_length = focal_length

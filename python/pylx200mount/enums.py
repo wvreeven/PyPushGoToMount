@@ -4,6 +4,7 @@ __all__ = [
     "EMPTY_REPLY",
     "HASH",
     "IDENTITY",
+    "MILLISECOND",
     "TELESCOPE_REDUCTION_06INCH",
     "TELESCOPE_REDUCTION_12INCH",
     "TELESCOPE_REDUCTION_20INCH",
@@ -38,6 +39,9 @@ TELESCOPE_REDUCTION_20INCH = 34.91
 
 # Identity (transformation) matrix.
 IDENTITY = np.identity(3)
+
+# One millisecond [sec] for asyncio waiting.
+MILLISECOND = 0.001
 
 
 class CommandName(enum.StrEnum):
