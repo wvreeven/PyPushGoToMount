@@ -1,0 +1,10 @@
+ignore = [
+    "E203", "E226", "E228", "E999", "N802", "N803", "N806", "N812", "N813", "N815", "N816"
+]
+line-length = 110
+exclude = ["__init__.py"]
+select = ["E", "F", "N", "W"]
+[pycodestyle]
+max-doc-length = 110
+[pydocstyle]
+convention = "numpy"
