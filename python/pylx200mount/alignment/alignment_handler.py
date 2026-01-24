@@ -6,6 +6,7 @@ __all__ = [
     "add_telescope_frame_transforms",
 ]
 
+import asyncio
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -25,7 +26,7 @@ from astropy.coordinates import (
 )
 from astropy.coordinates.matrix_utilities import matrix_transpose
 
-from ..enums import IDENTITY
+from ..enums import IDENTITY, MILLISECOND
 
 
 class TelescopeAltAzFrame(BaseCoordinateFrame):
@@ -137,11 +138,12 @@ class AlignmentHandler:
     """
 
     def __init__(self) -> None:
-        self._alignment_data: list[AlignmentPoint] = list()
+        self._alignment_data: list[AlignmentPoint] = []
         self.matrix = IDENTITY
+        self.is_aligned = False
         add_telescope_frame_transforms(self.matrix)
 
-    def add_alignment_position(self, altaz: SkyCoord, telescope: SkyCoord) -> None:
+    async def add_alignment_position(self, altaz: SkyCoord, telescope: SkyCoord) -> None:
         """Add an alignment point and compute the alignment matrix.
 
         Parameters
@@ -151,10 +153,11 @@ class AlignmentHandler:
         telescope : `SkyCoord`
             The telescope [azimuth, altitude].
         """
+        await asyncio.sleep(MILLISECOND)
         self._alignment_data.append(AlignmentPoint(altaz=altaz, telescope=telescope))
-        self.compute_transformation_matrix()
+        await self._compute_transformation_matrix()
 
-    def compute_transformation_matrix(self) -> None:
+    async def _compute_transformation_matrix(self) -> None:
         """Compute the transformation matrix between the altaz and telescope coordinates.
 
         The transformation matrix only is computed if at least three alignment points have been added. If more
@@ -167,6 +170,7 @@ class AlignmentHandler:
 
         See https://stackoverflow.com/a/27547597/22247307
         """
+        await asyncio.sleep(MILLISECOND)
         transformation_matrices: list[np.ndarray] = []
         alignment_triplets = [
             AlignmentTriplet(one=triplet[0], two=triplet[1], three=triplet[2])
@@ -187,25 +191,27 @@ class AlignmentHandler:
             self.matrix = IDENTITY
         elif len(transformation_matrices) == 1:
             self.matrix = transformation_matrices[0]
+            self.is_aligned = True
         else:
             # Compute the mean.
             self.matrix = np.mean(transformation_matrices, axis=0)
+            self.is_aligned = True
 
         add_telescope_frame_transforms(self.matrix)
 
-    def get_telescope_coords_from_altaz(self, altaz_coord: SkyCoord) -> SkyCoord:
+    async def get_telescope_coords_from_altaz(self, altaz_coord: SkyCoord) -> SkyCoord:
+        await asyncio.sleep(MILLISECOND)
         telescope_coord = altaz_coord.transform_to(TelescopeAltAzFrame)
         return telescope_coord
 
-    def get_altaz_from_telescope_coords(self, telescope_coord: SkyCoord) -> SkyCoord:
+    async def get_altaz_from_telescope_coords(self, telescope_coord: SkyCoord) -> SkyCoord:
+        await asyncio.sleep(MILLISECOND)
         altaz_coord = telescope_coord.transform_to(AltAz)
         return altaz_coord
 
 
 def add_telescope_frame_transforms(matrix: npt.ArrayLike) -> None:
-    to_telescope = StaticMatrixTransform(
-        matrix=matrix, fromsys=AltAz, tosys=TelescopeAltAzFrame
-    )
+    to_telescope = StaticMatrixTransform(matrix=matrix, fromsys=AltAz, tosys=TelescopeAltAzFrame)
     to_altaz = StaticMatrixTransform(
         matrix=matrix_transpose(matrix),
         fromsys=TelescopeAltAzFrame,

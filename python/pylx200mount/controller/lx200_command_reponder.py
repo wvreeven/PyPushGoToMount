@@ -5,6 +5,7 @@ __all__ = [
     "UPDATING_PLANETARY_DATA2",
 ]
 
+import asyncio
 import logging
 from datetime import datetime
 
@@ -12,7 +13,7 @@ from astropy import units as u
 from astropy.coordinates import Angle, Latitude, Longitude, SkyCoord
 
 from ..datetime_util import DatetimeUtil
-from ..enums import CommandName, CoordinatePrecision
+from ..enums import MILLISECOND, CommandName, CoordinatePrecision
 from ..my_math.astropy_util import get_skycoord_from_ra_dec_str
 from ..observing_location import get_observing_location, set_latitude, set_longitude
 from .mount_controller import MountController
@@ -37,6 +38,8 @@ REPLY_SEPARATOR = "\n"
 async def get_angle_as_lx200_string(
     angle: Angle, digits: int, coordinate_precision: CoordinatePrecision
 ) -> str:
+    await asyncio.sleep(MILLISECOND)
+
     # Use signed_dms here because dms will have negative minutes and seconds!!!
     angle_dms = angle.signed_dms
     d = f"{angle_dms.sign * angle_dms.d:0{digits}.0f}"
@@ -158,6 +161,7 @@ class Lx200CommandResponder:
         DEFAULT_REPLY
             The default reply accoring to the LX200 command protocol.
         """
+        await asyncio.sleep(MILLISECOND)
         self.log.debug(f"Setting RA to {data}")
         self.target_ra = data
         return DEFAULT_REPLY
@@ -184,17 +188,20 @@ class Lx200CommandResponder:
         DEFAULT_REPLY
             The default reply accoring to the LX200 command protocol.
         """
+        await asyncio.sleep(MILLISECOND)
         self.log.debug(f"Setting DEC to {data}")
         self.target_dec = data
         return DEFAULT_REPLY
 
     async def get_clock_format(self) -> str:
         """Get the clock format: 12h or 24h. We will always use 24h."""
+        await asyncio.sleep(MILLISECOND)
         return "(24)" + HASH
 
     async def get_tracking_rate(self) -> str:
         """Get the tracking rate of the mount."""
         # Return the sideral tracking frequency.
+        await asyncio.sleep(MILLISECOND)
         return "60.1" + HASH
 
     async def get_utc_offset(self) -> str:
@@ -204,6 +211,7 @@ class Lx200CommandResponder:
         of the number of hours that the local time is ahead or behind of UTC. The
         difference is a minus symbol.
         """
+        await asyncio.sleep(MILLISECOND)
         dt = DatetimeUtil.get_datetime()
         tz_info = dt.tzinfo
         assert tz_info is not None
@@ -215,41 +223,46 @@ class Lx200CommandResponder:
 
     async def get_local_time(self) -> str:
         """Get the local time at the observing site."""
+        await asyncio.sleep(MILLISECOND)
         current_dt = DatetimeUtil.get_datetime()
         return current_dt.strftime("%H:%M:%S") + HASH
 
     async def get_current_date(self) -> str:
         """Get the local date at the observing site."""
+        await asyncio.sleep(MILLISECOND)
         current_dt = DatetimeUtil.get_datetime()
         return current_dt.strftime("%m/%d/%y") + HASH
 
     async def get_firmware_date(self) -> str:
         """Get the firmware date which is just a date that I made up."""
+        await asyncio.sleep(MILLISECOND)
         return "Apr 05 2020" + HASH
 
     async def get_firmware_time(self) -> str:
         """Get the firmware time which is just a time that I made up."""
+        await asyncio.sleep(MILLISECOND)
         return "18:00:00" + HASH
 
     async def get_firmware_number(self) -> str:
         """Get the firmware number which is just a number that I made up."""
+        await asyncio.sleep(MILLISECOND)
         return "01.0" + HASH
 
     async def get_firmware_name(self) -> str:
         """Get the firmware name which is just a name that I made up."""
+        await asyncio.sleep(MILLISECOND)
         return "Phidgets|A|43Eg|Apr 05 2020@18:00:00" + HASH
 
     async def get_telescope_name(self) -> str:
         """Get the mount name which is just a name that I made up."""
+        await asyncio.sleep(MILLISECOND)
         return "Phidgets" + HASH
 
     async def get_current_site_latitude(self) -> str:
         """Get the latitude of the obsering site."""
         lat = get_observing_location().lat
         return (
-            await get_angle_as_lx200_string(
-                angle=lat, digits=2, coordinate_precision=CoordinatePrecision.LOW
-            )
+            await get_angle_as_lx200_string(angle=lat, digits=2, coordinate_precision=CoordinatePrecision.LOW)
             + HASH
         )
 
@@ -264,8 +277,7 @@ class Lx200CommandResponder:
             # INDI sends the latitude in the form of a decimal value.
             set_latitude(Latitude(f"{data} degrees"))
         self.log.debug(
-            f"Converted LX200 latitude {data} to internal latitude "
-            f"{get_observing_location().lat.deg}"
+            f"Converted LX200 latitude {data} to internal latitude {get_observing_location().lat.deg}"
         )
         await self.mount_controller.location_updated()
         return DEFAULT_REPLY
@@ -277,9 +289,8 @@ class Lx200CommandResponder:
         longitude positive, so we need to convert from the astropy longitude to the
         LX200 longitude.
         """
-        longitude = get_observing_location().lon.to_string(
-            unit=u.degree, sep=":", fields=2
-        )
+        await asyncio.sleep(MILLISECOND)
+        longitude = get_observing_location().lon.to_string(unit=u.degree, sep=":", fields=2)
         if longitude[0] == "-":
             longitude = longitude[1:]
         else:
@@ -312,14 +323,14 @@ class Lx200CommandResponder:
             # INDI sends the longitude in the form of a decimal value.
             set_longitude(Longitude(f"{longitude} degrees"))
         self.log.debug(
-            f"Converted LX200 longitude {data} to internal longitude "
-            f"{get_observing_location().lon.deg}"
+            f"Converted LX200 longitude {data} to internal longitude {get_observing_location().lon.deg}"
         )
         await self.mount_controller.location_updated()
         return DEFAULT_REPLY
 
     async def get_site_1_name(self) -> str:
         """Get the name of the observing site."""
+        await asyncio.sleep(MILLISECOND)
         return "My Site" + HASH
 
     async def set_slew_rate(self) -> None:
@@ -330,9 +341,7 @@ class Lx200CommandResponder:
     async def move_slew(self) -> str:
         """Move the telescope at slew rate to the target position."""
         self.log.debug(f"Slewing to RaDec ({self.target_ra}, {self.target_dec}).")
-        slew_possible = await self.mount_controller.slew_to(
-            self.target_ra, self.target_dec
-        )
+        slew_possible = await self.mount_controller.slew_to(self.target_ra, self.target_dec)
         if slew_possible != "0":
             slew_possible = slew_possible + HASH
         return slew_possible
@@ -353,6 +362,7 @@ class Lx200CommandResponder:
         This is the first method to be called in sequence when the planetarium software sets the timezone,
         time and date.
         """
+        await asyncio.sleep(MILLISECOND)
         self.log.debug(f"set_utc_offset received data {data}")
         utc_offset_hours = -float(data)
         self._datetime_str = f"{100 * utc_offset_hours:+05.0f}"
@@ -364,6 +374,7 @@ class Lx200CommandResponder:
         This is the second method to be called in sequence when the planetarium software sets the timezone,
         time and date.
         """
+        await asyncio.sleep(MILLISECOND)
         self.log.debug(f"set_local_time received data {data}")
         self._datetime_str = data + self._datetime_str
         return DEFAULT_REPLY
@@ -374,6 +385,7 @@ class Lx200CommandResponder:
         This is the third method to be called in sequence when the planetarium software sets the timezone,
         time and date.
         """
+        await asyncio.sleep(MILLISECOND)
         self.log.debug(f"set_local_date received data {data}")
         self._datetime_str = data + "T" + self._datetime_str
         dt = datetime.strptime(self._datetime_str, "%m/%d/%yT%H:%M:%S%z")
@@ -390,10 +402,12 @@ class Lx200CommandResponder:
 
     async def toggle_time_format(self) -> None:
         """Toggle the time format."""
+        await asyncio.sleep(MILLISECOND)
         self.log.debug("toggle_time_format received.")
 
     async def set_coordinate_precision(self) -> None:
         """Set the coordinate precision."""
+        await asyncio.sleep(MILLISECOND)
         self.log.debug("set_coordinate_precision")
         self.coordinate_precision = (
             CoordinatePrecision.LOW
@@ -403,9 +417,7 @@ class Lx200CommandResponder:
 
     async def sync(self) -> str:
         self.log.debug("sync received.")
-        ra_dec = get_skycoord_from_ra_dec_str(
-            ra_str=self.target_ra, dec_str=self.target_dec
-        )
+        ra_dec = await get_skycoord_from_ra_dec_str(ra_str=self.target_ra, dec_str=self.target_dec)
         await self.mount_controller.set_ra_dec(ra_dec)
         return "RANDOM NAME" + HASH
 
@@ -413,9 +425,11 @@ class Lx200CommandResponder:
         """Get the distance bars displayed on the hand controller.
 
         The hand controller doesn't exist in this case."""
+        await asyncio.sleep(MILLISECOND)
         self.log.debug("get_distance_bars received.")
-        return "0x7f" + HASH if self.mount_controller.is_slewing else HASH
+        return "0x7f" + HASH
 
     async def get_alignment_status(self) -> str:
         """Get the alignment status."""
+        await asyncio.sleep(MILLISECOND)
         return "AN0" + HASH

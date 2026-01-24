@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 __all__ = ["EmulatedMotorController"]
 
 import asyncio
 import logging
+import types
 import typing
 
 from astropy.coordinates import Angle
@@ -16,6 +19,8 @@ ATTACH_WAIT_TIME = 2000
 MAX_VELOCITY = 100000.0
 # The maximum acceleration of the stepper motor [steps/s^2].
 MAX_ACCEL = 50000.0
+# Position loop finish timeout [s].
+POSITION_LOOP_FINISH_TIMEOUT = 5.0
 
 
 class EmulatedStepper:
@@ -43,7 +48,7 @@ class EmulatedStepper:
 
         self._trajectory: Trajectory | None = None
 
-        self._target_position = 0.0
+        self._target_position: float | None = 0.0
         self._velocity_limit = 0.0
 
         # Callback handlers.
@@ -64,28 +69,20 @@ class EmulatedStepper:
         the position respectively the velocity have changed. The loop delay is non-drifiting.
         """
         start_time = DatetimeUtil.get_timestamp()
-        while True:
-            # Keep track of old time, position and velocity for change handlers.
-            old_position = self._position
-            old_velocity = self._velocity
-
+        while self._engaged:
             self._compute_position_and_velocity()
 
-            # Call change handlers if necessary.
-            if old_position != self._position and self._on_position_change_handler:
-                self._on_position_change_handler(self, self._position)
-            if old_velocity != self._velocity and self._on_velocity_change_handler:
-                self._on_velocity_change_handler(self, self._velocity)
-
             # Compute the remainder of the wait time to avoid drift.
-            remainder = (
-                DatetimeUtil.get_timestamp() - start_time
-            ) % self._data_interval
+            remainder = (DatetimeUtil.get_timestamp() - start_time) % self._data_interval
             # Now sleep the remainder of the wait time.
             await asyncio.sleep(self._data_interval - remainder)
 
     def _compute_position_and_velocity(self) -> None:
         """Use the computed trajectory to compute the position and velocity for the current time."""
+        # Keep track of old time, position and velocity for change handlers.
+        old_position = self._position
+        old_velocity = self._velocity
+
         if self._trajectory is not None and len(self._trajectory.segments) != 0:
             now = DatetimeUtil.get_timestamp()
             time_since_command_time = now - self._command_time
@@ -96,9 +93,7 @@ class EmulatedStepper:
                     segment_to_use = segment
                     break
 
-            assert (
-                segment_to_use is not None
-            ), f"{segment_to_use=}, {self._trajectory.segments=}"
+            assert segment_to_use is not None, f"{segment_to_use=}, {self._trajectory.segments=}"
             time_to_use = time_since_command_time - segment_to_use.start_time
             self._position, self._velocity = accelerated_pos_and_vel(
                 start_position=segment_to_use.start_position,
@@ -106,6 +101,12 @@ class EmulatedStepper:
                 acceleration=segment_to_use.acceleration,
                 time=time_to_use,
             )
+
+        # Call change handlers if necessary.
+        if old_position != self._position and self._on_position_change_handler:
+            self._on_position_change_handler(self, self._position)
+        if old_velocity != self._velocity and self._on_velocity_change_handler:
+            self._on_velocity_change_handler(self, self._velocity)
 
     def close(self) -> None:
         """Emulate the Phidgets close method."""
@@ -132,20 +133,23 @@ class EmulatedStepper:
         """Emulate the Phidgets setDataInterval method."""
         self._data_interval = data_interval
 
-    def set_engaged(self, engaged: bool) -> None:
+    async def set_engaged(self, engaged: bool) -> None:
         """Emulate the Phidgets setEngaged method."""
         self._engaged = engaged
         if engaged:
             self._position_loop_task = asyncio.create_task(self._position_loop())
         else:
-            if not self._position_loop_task.done():
-                try:
-                    self._position_loop_task.cancel()
-                except Exception:
-                    if self._on_error_handler:
-                        self._on_error_handler(
-                            code=1, description="Position loop task got cancelled."
-                        )
+            try:
+                async with asyncio.timeout(POSITION_LOOP_FINISH_TIMEOUT):
+                    await self._position_loop_task
+            except TimeoutError:
+                self.log.exception("Failed to close position loop in time alloted.")
+            except Exception:
+                self.log.exception("Something went wrong closing position loop.")
+            finally:
+                not_yet_cancelled = self._position_loop_task.cancel()
+                if not_yet_cancelled:
+                    await self._position_loop_task
 
     def set_hub_port(self, hub_port: int) -> None:
         """Emulate the Phidgets setHubPort method."""
@@ -167,7 +171,7 @@ class EmulatedStepper:
         """Emulate the Phidgets setOnVelocityChangeHandler method."""
         self._on_velocity_change_handler = handler
 
-    def set_target_position(self, target_position: float) -> None:
+    def set_target_position(self, target_position: float | None) -> None:
         """Emulate the Phidgets setTargetPosition method.
 
         Apart from setting the target position, also compute the paramters for the motion.
@@ -177,7 +181,7 @@ class EmulatedStepper:
 
         Parameters
         ----------
-        target_position : `float`
+        target_position : `float` | None
             The position to move to.
         """
         self._target_position = target_position
@@ -223,9 +227,7 @@ class EmulatedMotorController(BaseMotorController):
         self.stepper.set_on_position_change_handler(self.on_position_change)
         self.stepper.set_on_velocity_change_handler(self.on_velocity_change)
 
-        self._position_offset = round(
-            (initial_position / self._conversion_factor).value
-        )
+        self._position_offset = round((initial_position / self._conversion_factor).value)
 
     async def connect(self) -> None:
         """Connect the stepper motor."""
@@ -235,21 +237,21 @@ class EmulatedMotorController(BaseMotorController):
         except Exception as e:
             raise RuntimeError(e)
         assert self.attached
-        self.stepper.set_engaged(True)
+        await self.stepper.set_engaged(True)
         self.stepper.set_acceleration(self._max_acceleration)
         self.stepper.set_data_interval(self.stepper.get_min_data_interval())
 
     async def disconnect(self) -> None:
         """Disconnect the stepper motor."""
         assert self.stepper is not None
-        self.stepper.set_engaged(False)
+        await self.stepper.set_engaged(False)
         self.stepper.close()
         assert not self.attached
 
-    async def set_target_position_and_velocity(
+    async def move_to_target_position_at_velocity(
         self, target_position_in_steps: float, max_velocity_in_steps: float
     ) -> None:
-        """Set the target position and maximum velocity in the stepper motor.
+        """Move the motor to the provided position at the provided maximum velocity and stop.
 
         Parameters
         ----------
@@ -261,3 +263,27 @@ class EmulatedMotorController(BaseMotorController):
         assert self.stepper is not None
         self.stepper.set_velocity_limit(abs(max_velocity_in_steps))
         self.stepper.set_target_position(target_position_in_steps)
+
+    async def track_at_velocity(self, max_velocity_in_steps: float) -> None:
+        """Track the motor at the provided maximum velocity and stop.
+
+        Parameters
+        ----------
+        max_velocity_in_steps : `float`
+            The maximum velocity [steps/sec].
+        """
+        assert self.stepper is not None
+        self.stepper.set_velocity_limit(max_velocity_in_steps)
+        self.stepper.set_target_position(None)
+
+    async def __aenter__(self) -> EmulatedMotorController:
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        _type: None | BaseException,
+        _value: None | BaseException,
+        _traceback: None | types.TracebackType,
+    ) -> None:
+        await self.disconnect()

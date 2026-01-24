@@ -2,6 +2,7 @@ from __future__ import annotations
 
 __all__ = ["BaseMotorController"]
 
+import asyncio
 import logging
 import types
 import typing
@@ -10,7 +11,7 @@ from abc import ABC, abstractmethod
 import astropy.units as u
 from astropy.coordinates import Angle
 
-from ..enums import MotorControllerState, SlewRate
+from ..enums import MILLISECOND, MotorControllerState, SlewRate
 from .trajectory import Trajectory, accelerated_pos_and_vel
 
 # An angle of 180º.
@@ -50,9 +51,7 @@ class BaseMotorController(ABC):
     # Name for azimuth motors.
     AZ = "Az"
 
-    def __init__(
-        self, log: logging.Logger, name: str, conversion_factor: Angle
-    ) -> None:
+    def __init__(self, log: logging.Logger, name: str, conversion_factor: Angle) -> None:
         self.name = name
         self.log = log.getChild(f"{type(self).__name__} {self.name}")
 
@@ -67,6 +66,9 @@ class BaseMotorController(ABC):
         self._position_offset = 0.0
         self.state = MotorControllerState.STOPPED
 
+        # Target position.
+        self.target_position = Angle(0.0 * u.deg)
+
         # Some necessary constants that need to be computed once the conversion factor is known.
         self._one_eighty_steps = (ONE_EIGHTY / self._conversion_factor).value
         self._three_sixty_steps = (THREE_SIXTY / self._conversion_factor).value
@@ -77,9 +79,7 @@ class BaseMotorController(ABC):
     def position(self) -> Angle:
         """The motor position [steps] as an astropy `Angle`."""
         pos = (self._position + self._position_offset) * self._conversion_factor
-        return pos.wrap_at(
-            ALT_WRAP if self.name == BaseMotorController.ALT else AZ_WRAP
-        )
+        return pos.wrap_at(ALT_WRAP if self.name == BaseMotorController.ALT else AZ_WRAP)
 
     @position.setter
     def position(self, position: Angle) -> None:
@@ -102,7 +102,7 @@ class BaseMotorController(ABC):
         """The motor maximum acceleration [steps/sec^2] as an astropy `Angle` per sec^2."""
         return self._max_acceleration * self._conversion_factor
 
-    def _get_target_position_in_steps(self, target_position: Angle) -> int:
+    async def _get_target_position_in_steps(self, target_position: Angle) -> int:
         """Get the target position in steps.
 
         This takes both the conversion factor and the position offset into account. The number of steps is
@@ -116,8 +116,10 @@ class BaseMotorController(ABC):
         Returns
         -------
         int
-            The targtet position [sec].
+            The target position [steps].
         """
+        await asyncio.sleep(MILLISECOND)
+
         diff = (target_position - self.position).wrap_at(ONE_EIGHTY)
         diff_in_steps = (diff / self._conversion_factor).value
         target_position_in_steps = self._position + diff_in_steps
@@ -170,10 +172,13 @@ class BaseMotorController(ABC):
         self.state = MotorControllerState.STOPPING
         position_to_start_stopping = self._position
         max_velocity_in_steps = self._velocity
-        if max_velocity_in_steps >= 0:
+        if max_velocity_in_steps > 0:
             accel = -self._max_acceleration
-        else:
+        elif max_velocity_in_steps < 0:
             accel = self._max_acceleration
+        else:
+            self.log.exception(f"{max_velocity_in_steps=}. Ignoring.")
+            return
         time_needed_to_stop = abs(max_velocity_in_steps / accel)
         target_position_in_steps, _ = accelerated_pos_and_vel(
             position_to_start_stopping,
@@ -181,18 +186,12 @@ class BaseMotorController(ABC):
             accel,
             time_needed_to_stop,
         )
-        target_position = (
-            target_position_in_steps + self._position_offset
-        ) * self._conversion_factor
-        target_position_in_steps = self._get_target_position_in_steps(target_position)
+        self.target_position = target_position_in_steps * self._conversion_factor
+        target_position_in_steps = await self._get_target_position_in_steps(self.target_position)
 
-        await self.set_target_position_and_velocity(
-            target_position_in_steps, max_velocity_in_steps
-        )
+        await self.move_to_target_position_at_velocity(target_position_in_steps, max_velocity_in_steps)
 
-    async def move(
-        self, target_position: Angle, slew_rate: SlewRate = SlewRate.HIGH
-    ) -> None:
+    async def move(self, target_position: Angle, slew_rate: SlewRate = SlewRate.HIGH) -> None:
         """Move to the indicated target position at the maximum velocity.
 
         Parameters
@@ -204,12 +203,11 @@ class BaseMotorController(ABC):
             to HIGH, which is the highest rate.
         """
         self.state = MotorControllerState.SLEWING
-        target_position_in_steps = self._get_target_position_in_steps(target_position)
+        self.target_position = target_position
+        target_position_in_steps = await self._get_target_position_in_steps(target_position)
         max_velocity_in_steps = self._max_velocity * slew_rate / SlewRate.HIGH
 
-        await self.set_target_position_and_velocity(
-            target_position_in_steps, max_velocity_in_steps
-        )
+        await self.move_to_target_position_at_velocity(target_position_in_steps, max_velocity_in_steps)
 
     async def track(self, target_position: Angle, timediff: float) -> None:
         """Track the provided target position over the provided time difference.
@@ -224,11 +222,10 @@ class BaseMotorController(ABC):
         timediff : `float`
             The amount of time to take to track to the target position.
         """
-        target_position_in_steps = self._get_target_position_in_steps(target_position)
-        max_velocity_in_steps = (self._position - target_position_in_steps) / timediff
-        await self.set_target_position_and_velocity(
-            target_position_in_steps, max_velocity_in_steps
-        )
+        target_position_in_steps = await self._get_target_position_in_steps(target_position)
+        position_in_steps = self._position - self._position_offset
+        max_velocity_in_steps = (target_position_in_steps - position_in_steps) / timediff
+        await self.track_at_velocity(max_velocity_in_steps=max_velocity_in_steps)
 
     async def estimate_slew_time(self, target_position: Angle) -> float:
         """Estimate the slew time to the target position.
@@ -243,10 +240,12 @@ class BaseMotorController(ABC):
         float
             The estimated slew time to the target position.
         """
+        await asyncio.sleep(MILLISECOND)
         trajectory = Trajectory(max_acceleration=self._max_acceleration)
-        target_position_in_steps = self._get_target_position_in_steps(target_position)
+        target_position_in_steps = await self._get_target_position_in_steps(target_position)
+        position_in_steps = self._position - self._position_offset
         trajectory.set_target_position_and_velocity(
-            curr_pos=self._position,
+            curr_pos=position_in_steps,
             curr_vel=self._velocity,
             target_position=target_position_in_steps,
             max_velocity=self._max_velocity,
@@ -264,15 +263,26 @@ class BaseMotorController(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def set_target_position_and_velocity(
+    async def move_to_target_position_at_velocity(
         self, target_position_in_steps: float, max_velocity_in_steps: float
     ) -> None:
-        """Set the target position and maximum velocity in the stepper motor.
+        """Move the motor to the provided position at the provided maximum velocity and stop.
 
         Parameters
         ----------
         target_position_in_steps : `float`
             The target position [steps].
+        max_velocity_in_steps : `float`
+            The maximum velocity [steps/sec].
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def track_at_velocity(self, max_velocity_in_steps: float) -> None:
+        """Track the motor at the provided maximum velocity and stop.
+
+        Parameters
+        ----------
         max_velocity_in_steps : `float`
             The maximum velocity [steps/sec].
         """
@@ -284,8 +294,8 @@ class BaseMotorController(ABC):
 
     async def __aexit__(
         self,
-        type: None | BaseException,
-        value: None | BaseException,
-        traceback: None | types.TracebackType,
+        _type: None | BaseException,
+        _value: None | BaseException,
+        _traceback: None | types.TracebackType,
     ) -> None:
         await self.disconnect()

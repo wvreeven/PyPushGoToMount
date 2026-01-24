@@ -22,12 +22,13 @@ class TestPhidgetsMotorController(IsolatedAsyncioTestCase):
         mock_stepper.close.side_effect = self.detach
         self.pmc.stepper = mock_stepper
 
-    async def test_phidgets_motor_controller(self) -> None:
+    async def test_move(self) -> None:
         await self.pmc.connect()
         assert self.pmc.attached
-        await self.pmc.set_target_position_and_velocity(
+        await self.pmc.move_to_target_position_at_velocity(
             target_position_in_steps=10000.0, max_velocity_in_steps=10000.0
         )
+        await self.pmc.track_at_velocity(max_velocity_in_steps=100.0)
         await self.pmc.disconnect()
         assert not self.pmc.attached
 

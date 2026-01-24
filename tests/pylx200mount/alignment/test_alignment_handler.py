@@ -5,11 +5,9 @@ import astropy.units as u
 import numpy as np
 import pylx200mount
 from astropy.coordinates import AltAz, SkyCoord
-from pylx200mount.my_math import get_skycoord_from_alt_az
 
 
 class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
-
     # Rotation of 1º around the x-axis.
     angle = math.radians(1.0)
     matrix = np.array(
@@ -25,12 +23,8 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
 
         pylx200mount.alignment.add_telescope_frame_transforms(self.matrix)
 
-        coo = SkyCoord(
-            az=[0.0, 90.0, 120.0] * u.deg, alt=[41.3, 86.8, 77.9] * u.deg, frame=AltAz
-        )
-        expected = SkyCoord(
-            az=[1.0, 91.0, 121.0] * u.deg, alt=[41.3, 86.8, 77.9] * u.deg, frame=AltAz
-        )
+        coo = SkyCoord(az=[0.0, 90.0, 120.0] * u.deg, alt=[41.3, 86.8, 77.9] * u.deg, frame=AltAz)
+        expected = SkyCoord(az=[1.0, 91.0, 121.0] * u.deg, alt=[41.3, 86.8, 77.9] * u.deg, frame=AltAz)
         tel_coo = coo.transform_to(pylx200mount.alignment.TelescopeAltAzFrame)
         assert np.all(np.isclose(tel_coo.az, expected.az))
         assert np.all(np.isclose(tel_coo.alt, expected.alt))
@@ -38,7 +32,7 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
         assert np.all(np.isclose(coo.az, coo2.az))
         assert np.all(np.isclose(coo.alt, coo2.alt))
 
-        altaz = get_skycoord_from_alt_az(az=0.0, alt=41.3, timestamp=now)
+        altaz = await pylx200mount.my_math.get_skycoord_from_alt_az(az=0.0, alt=41.3, timestamp=now)
         tel_coo = altaz.transform_to(pylx200mount.alignment.TelescopeAltAzFrame)
         assert math.isclose(tel_coo.az.deg, expected[0].az.deg)
         assert math.isclose(tel_coo.alt.deg, expected[0].alt.deg)
@@ -60,12 +54,12 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
     async def test_create_matrix_using_alignment_points(self) -> None:
         now = pylx200mount.DatetimeUtil.get_timestamp()
         ap1 = pylx200mount.alignment.AlignmentPoint(
-            altaz=pylx200mount.my_math.get_skycoord_from_alt_az(
+            altaz=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=0.0,
                 alt=41.3,
                 timestamp=now,
             ),
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=1.0,
                 alt=41.3,
                 timestamp=now,
@@ -73,12 +67,12 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
             ),
         )
         ap2 = pylx200mount.alignment.AlignmentPoint(
-            altaz=pylx200mount.my_math.get_skycoord_from_alt_az(
+            altaz=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=90.0,
                 alt=41.3,
                 timestamp=now,
             ),
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=91.0,
                 alt=41.3,
                 timestamp=now,
@@ -86,12 +80,12 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
             ),
         )
         ap3 = pylx200mount.alignment.AlignmentPoint(
-            altaz=pylx200mount.my_math.get_skycoord_from_alt_az(
+            altaz=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=120.0,
                 alt=41.3,
                 timestamp=now,
             ),
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=121.0,
                 alt=41.3,
                 timestamp=now,
@@ -112,36 +106,36 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
     async def test_alignment_handler(self) -> None:
         now = pylx200mount.DatetimeUtil.get_timestamp()
         ah = pylx200mount.alignment.AlignmentHandler()
-        altaz = get_skycoord_from_alt_az(az=0.0, alt=41.3, timestamp=now)
-        ah.add_alignment_position(
+        altaz = await pylx200mount.my_math.get_skycoord_from_alt_az(az=0.0, alt=41.3, timestamp=now)
+        await ah.add_alignment_position(
             altaz,
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=1.0,
                 alt=41.3,
                 timestamp=now,
                 frame=pylx200mount.alignment.TelescopeAltAzFrame,
             ),
         )
-        ah.add_alignment_position(
-            altaz=pylx200mount.my_math.get_skycoord_from_alt_az(
+        await ah.add_alignment_position(
+            altaz=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=90.0,
                 alt=41.3,
                 timestamp=now,
             ),
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=91.0,
                 alt=41.3,
                 timestamp=now,
                 frame=pylx200mount.alignment.TelescopeAltAzFrame,
             ),
         )
-        ah.add_alignment_position(
-            altaz=pylx200mount.my_math.get_skycoord_from_alt_az(
+        await ah.add_alignment_position(
+            altaz=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=120.0,
                 alt=41.3,
                 timestamp=now,
             ),
-            telescope=pylx200mount.my_math.get_skycoord_from_alt_az(
+            telescope=await pylx200mount.my_math.get_skycoord_from_alt_az(
                 az=121.0,
                 alt=41.3,
                 timestamp=now,
@@ -150,11 +144,11 @@ class TestAlignmentHandler(unittest.IsolatedAsyncioTestCase):
         )
         assert np.all(np.isclose(ah.matrix, self.matrix))
 
-        tel = ah.get_telescope_coords_from_altaz(altaz)
+        tel = await ah.get_telescope_coords_from_altaz(altaz)
         assert math.isclose(tel.az.deg, 1.0)
         assert math.isclose(tel.alt.deg, 41.3)
 
-        coo = ah.get_altaz_from_telescope_coords(tel)
+        coo = await ah.get_altaz_from_telescope_coords(tel)
         coo_az = coo.az.wrap_at(180 * u.deg)
         assert math.isclose(coo_az.deg, 0.0, abs_tol=1.0e-10)
         assert math.isclose(coo.alt.deg, 41.3)

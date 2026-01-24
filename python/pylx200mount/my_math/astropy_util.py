@@ -1,5 +1,4 @@
 __all__ = [
-    "get_altaz_at_different_time",
     "get_altaz_from_radec",
     "get_radec_from_altaz",
     "get_skycoord_from_alt_az",
@@ -7,10 +6,14 @@ __all__ = [
     "get_skycoord_from_ra_dec_str",
 ]
 
+import asyncio
+
 from astropy import units as u
 from astropy.coordinates import FK5, AltAz, Angle, BaseCoordinateFrame, SkyCoord
 
+from ..alignment import TelescopeAltAzFrame
 from ..datetime_util import DatetimeUtil
+from ..enums import MILLISECOND
 from ..observing_location import get_observing_location
 
 DEFAULT_ATMOSPHERIC_PRESSURE = u.Quantity(101325.0 * u.Pa)
@@ -21,12 +24,11 @@ DEFAULT_WAVELENGTH = u.Quantity(0.550 * u.micron)
 _fk5 = FK5(equinox=DatetimeUtil.get_datetime())
 
 
-def get_skycoord_from_alt_az(
-    alt: float,
-    az: float,
-    timestamp: float,
-    frame: BaseCoordinateFrame = AltAz,
+async def get_skycoord_from_alt_az(
+    alt: float, az: float, timestamp: float, frame: BaseCoordinateFrame = AltAz
 ) -> SkyCoord:
+    await asyncio.sleep(MILLISECOND)
+
     return SkyCoord(
         alt=Angle(alt * u.deg).wrap_at(180.0 * u.deg),
         az=Angle(az * u.deg).wrap_at(360.0 * u.deg),
@@ -40,58 +42,53 @@ def get_skycoord_from_alt_az(
     )
 
 
-def get_altaz_at_different_time(
-    alt: float,
-    az: float,
-    timestamp: float,
-    timediff: float,
-    frame: BaseCoordinateFrame = AltAz,
-) -> AltAz:
-    alt_az = get_skycoord_from_alt_az(
-        alt=alt,
-        az=az,
-        timestamp=timestamp,
-        frame=frame,
-    )
-    return alt_az.transform_to(
-        AltAz(obstime=DatetimeUtil.get_datetime_at_timestamp(timestamp + timediff)),
-    )
-
-
-def get_altaz_from_radec(
-    ra_dec: SkyCoord,
-    timestamp: float,
-    frame: BaseCoordinateFrame = AltAz,
+async def get_altaz_from_radec(
+    ra_dec: SkyCoord, timestamp: float, frame: BaseCoordinateFrame = AltAz
 ) -> SkyCoord:
-    alt_az = ra_dec.transform_to(
-        AltAz(
-            obstime=DatetimeUtil.get_datetime_at_timestamp(timestamp),
-            location=get_observing_location(),
-            pressure=DEFAULT_ATMOSPHERIC_PRESSURE,
-            temperature=DEFAULT_TEMPERATURE,
-            relative_humidity=DEFAULT_RELATIVE_HUMIDITY,
-            obswl=DEFAULT_WAVELENGTH,
+    await asyncio.sleep(MILLISECOND)
+
+    if frame.name == "altaz":
+        return ra_dec.transform_to(
+            AltAz(
+                obstime=DatetimeUtil.get_datetime_at_timestamp(timestamp),
+                location=get_observing_location(),
+                pressure=DEFAULT_ATMOSPHERIC_PRESSURE,
+                temperature=DEFAULT_TEMPERATURE,
+                relative_humidity=DEFAULT_RELATIVE_HUMIDITY,
+                obswl=DEFAULT_WAVELENGTH,
+            )
         )
-    )
-    return get_skycoord_from_alt_az(alt_az.alt.deg, alt_az.az.deg, timestamp, frame)
+    elif frame.name == "telescopealtazframe":
+        return ra_dec.transform_to(
+            TelescopeAltAzFrame(
+                obstime=DatetimeUtil.get_datetime_at_timestamp(timestamp),
+                location=get_observing_location(),
+                pressure=DEFAULT_ATMOSPHERIC_PRESSURE,
+                temperature=DEFAULT_TEMPERATURE,
+                relative_humidity=DEFAULT_RELATIVE_HUMIDITY,
+                obswl=DEFAULT_WAVELENGTH,
+            )
+        )
+    else:
+        raise ValueError(f"Unknown frame type: {type(frame)}.")
 
 
-def get_skycoord_from_ra_dec(ra: float, dec: float) -> SkyCoord:
+async def get_skycoord_from_ra_dec(ra: float, dec: float) -> SkyCoord:
+    await asyncio.sleep(MILLISECOND)
+
+    return SkyCoord(ra=Angle(ra * u.deg), dec=Angle(dec * u.deg), frame=_fk5)
+
+
+async def get_skycoord_from_ra_dec_str(ra_str: str, dec_str: str) -> SkyCoord:
+    await asyncio.sleep(MILLISECOND)
+
     return SkyCoord(
-        ra=Angle(ra * u.deg),
-        dec=Angle(dec * u.deg),
-        frame=_fk5,
+        ra=Angle(ra_str + " hours"), dec=Angle(dec_str.replace("*", ":") + " degrees"), frame=_fk5
     )
 
 
-def get_skycoord_from_ra_dec_str(ra_str: str, dec_str: str) -> SkyCoord:
-    return SkyCoord(
-        ra=Angle(ra_str + " hours"),
-        dec=Angle(dec_str.replace("*", ":") + " degrees"),
-        frame=_fk5,
-    )
+async def get_radec_from_altaz(alt_az: SkyCoord) -> SkyCoord:
+    await asyncio.sleep(MILLISECOND)
 
-
-def get_radec_from_altaz(alt_az: SkyCoord) -> SkyCoord:
     ra_dec = alt_az.transform_to(_fk5)
-    return get_skycoord_from_ra_dec(ra_dec.ra.deg, ra_dec.dec.deg)
+    return ra_dec

@@ -1,0 +1,7 @@
+line-length = 110
+exclude = ["__init__.py"]
+lint.select = ["E", "F", "N", "W"]
+[lint.pycodestyle]
+max-doc-length = 110
+[lint.pydocstyle]
+convention = "numpy"
