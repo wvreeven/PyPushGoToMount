@@ -85,7 +85,7 @@ class LX200Mount:
                     await self._read_and_process_line(reader)
                 # Not sure what to do in this case, so log the character and do nothing else.
                 else:
-                    self.log.debug("Ignoring c=%c.", c)
+                    self.log.debug(f"Ignoring {c=}.")
 
         except (ConnectionResetError, BrokenPipeError):
             pass
@@ -116,7 +116,7 @@ class LX200Mount:
 
     async def _process_command(self, cmd: CommandName, line: str) -> None:
         self.responder.cmd = cmd.value
-        (func, has_arg) = self.responder.dispatch_dict[cmd]
+        func, has_arg = self.responder.dispatch_dict[cmd]
         kwargs = {}
         if has_arg:
             # Read the function argument from the incoming command line

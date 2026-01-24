@@ -116,7 +116,7 @@ class EmulatedStepper:
 
     def get_min_data_interval(self) -> float:
         """Emulate the Phidgets getMinDataInterval method."""
-        return 0.1
+        return 0.01
 
     def open_wait_for_attachment(self, timeout: float) -> None:
         """Emulate the Phidgets openWaitForAttachment method."""

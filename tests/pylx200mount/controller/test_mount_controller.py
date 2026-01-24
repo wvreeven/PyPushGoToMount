@@ -162,7 +162,7 @@ class TestMountController(IsolatedAsyncioTestCase):
         ):
             log = logging.getLogger(type(self).__name__)
             for az_offset in [0.0, -1.0]:
-                self.t = 1000.0
+                self.t = 1000000000.0
                 self.mount_controller = pylx200mount.controller.MountController(log=log)
                 await self.mount_controller.start()
                 await self.mount_controller.stop()
