@@ -67,12 +67,12 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
         await asyncio.sleep(0.1)
         expected_pos_deg = (expected_data.position * self.emulated_motor_controller._conversion_factor).deg
         expected_vel_deg = (expected_data.velocity * self.emulated_motor_controller._conversion_factor).deg
-        assert math.isclose(
-            self.emulated_motor_controller.position.deg, expected_pos_deg, abs_tol=0.001
-        ), f"{self.emulated_motor_controller.position.deg=}, {expected_pos_deg}"
-        assert math.isclose(
-            self.emulated_motor_controller.velocity.deg, expected_vel_deg, abs_tol=0.001
-        ), f"{self.emulated_motor_controller.velocity.deg=}, {expected_vel_deg}"
+        assert math.isclose(self.emulated_motor_controller.position.deg, expected_pos_deg, abs_tol=0.001), (
+            f"{self.emulated_motor_controller.position.deg=}, {expected_pos_deg}"
+        )
+        assert math.isclose(self.emulated_motor_controller.velocity.deg, expected_vel_deg, abs_tol=0.001), (
+            f"{self.emulated_motor_controller.velocity.deg=}, {expected_vel_deg}"
+        )
 
     async def test_set_position(self) -> None:
         async with self.create_emulated_motor():
