@@ -222,8 +222,10 @@ class BaseMotorController(ABC):
         timediff : `float`
             The amount of time to take to track to the target position.
         """
-        target_position_in_steps = await self._get_target_position_in_steps(target_position)
-        position_in_steps = self._position - self._position_offset
+        target_position_in_steps = (
+            await self._get_target_position_in_steps(target_position) + self._position_offset
+        )
+        position_in_steps = self._position + self._position_offset
         max_velocity_in_steps = (target_position_in_steps - position_in_steps) / timediff
         await self.track_at_velocity(max_velocity_in_steps=max_velocity_in_steps)
 

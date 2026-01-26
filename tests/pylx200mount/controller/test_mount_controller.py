@@ -153,13 +153,16 @@ class TestMountController(IsolatedAsyncioTestCase):
 
     async def test_track(self) -> None:
         self.config_file = CONFIG_DIR / "config_emulated_motors_only.json"
-        with mock.patch(
-            "pylx200mount.emulation.emulated_motor_controller.DatetimeUtil.get_timestamp",
-            self.get_timestamp,
-        ), mock.patch("pylx200mount.controller.utils.CONFIG_FILE", self.config_file):
+        with (
+            mock.patch(
+                "pylx200mount.emulation.emulated_motor_controller.DatetimeUtil.get_timestamp",
+                self.get_timestamp,
+            ),
+            mock.patch("pylx200mount.controller.utils.CONFIG_FILE", self.config_file),
+        ):
             log = logging.getLogger(type(self).__name__)
             for az_offset in [0.0, -1.0]:
-                self.t = 1000.0
+                self.t = 1000000000.0
                 self.mount_controller = pylx200mount.controller.MountController(log=log)
                 await self.mount_controller.start()
                 await self.mount_controller.stop()

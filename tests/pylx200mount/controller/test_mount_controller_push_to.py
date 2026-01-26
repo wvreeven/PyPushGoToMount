@@ -83,9 +83,9 @@ class TestMountControllerPushTo(IsolatedAsyncioTestCase):
                 self.log.debug(f"telescope_altaz={telescope_altaz.to_string('dms')}")
 
                 target_camera_sep = target_altaz.separation(camera_altaz).arcsecond
-                assert (
-                    target_camera_sep < POSITION_OFFSET_TOLERANCE
-                ), f"{target_camera_sep=}, {POSITION_OFFSET_TOLERANCE=}"
+                assert target_camera_sep < POSITION_OFFSET_TOLERANCE, (
+                    f"{target_camera_sep=}, {POSITION_OFFSET_TOLERANCE=}"
+                )
 
                 telescope_camera_sep = telescope_altaz.separation(camera_altaz).deg
                 assert math.isclose(

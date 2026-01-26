@@ -64,15 +64,19 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def assert_position_and_velocity(self, expected_data: ExpectedData) -> None:
         self.t = expected_data.time
-        await asyncio.sleep(0.1)
-        expected_pos_deg = (expected_data.position * self.emulated_motor_controller._conversion_factor).deg
-        expected_vel_deg = (expected_data.velocity * self.emulated_motor_controller._conversion_factor).deg
-        assert math.isclose(
-            self.emulated_motor_controller.position.deg, expected_pos_deg, abs_tol=0.001
-        ), f"{self.emulated_motor_controller.position.deg=}, {expected_pos_deg}"
-        assert math.isclose(
-            self.emulated_motor_controller.velocity.deg, expected_vel_deg, abs_tol=0.001
-        ), f"{self.emulated_motor_controller.velocity.deg=}, {expected_vel_deg}"
+        await asyncio.sleep(0.01)
+        motor_pos_steps = (
+            self.emulated_motor_controller.position / self.emulated_motor_controller._conversion_factor
+        )
+        motor_vel_steps = (
+            self.emulated_motor_controller.velocity / self.emulated_motor_controller._conversion_factor
+        )
+        assert math.isclose(motor_pos_steps, expected_data.position, abs_tol=5), (
+            f"{motor_pos_steps=}, {expected_data.position}"
+        )
+        assert math.isclose(motor_vel_steps, expected_data.velocity, abs_tol=5), (
+            f"{motor_vel_steps=}, {expected_data.velocity}"
+        )
 
     async def test_set_position(self) -> None:
         async with self.create_emulated_motor():
@@ -587,9 +591,34 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
                 target_position=1000 * self.conversion_factor, timediff=1.0
             )
             for expected_data in [
+                ExpectedData(command_time, 0, 0),
                 ExpectedData(command_time + 0.5, 490, 1000),
                 ExpectedData(command_time + 1.0, 990, 1000),
                 ExpectedData(command_time + 1.5, 1490, 1000),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=1500 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, 490, 1000),
+                ExpectedData(command_time + 0.5, 995, 1010),
+                ExpectedData(command_time + 1.0, 1500, 1010),
+                ExpectedData(command_time + 1.5, 2005, 1010),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=2000 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, 995, 1010),
+                ExpectedData(command_time + 0.5, 1500, 1005),
+                ExpectedData(command_time + 1.0, 2000, 1005),
+                ExpectedData(command_time + 1.5, 2500, 1005),
             ]:
                 await self.assert_position_and_velocity(expected_data)
 
@@ -602,5 +631,108 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
                 ExpectedData(command_time + 0.5, -490, -1000),
                 ExpectedData(command_time + 1.0, -990, -1000),
                 ExpectedData(command_time + 1.5, -1490, -1000),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=-1500 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, -490, -1000),
+                ExpectedData(command_time + 0.5, -995, -1010),
+                ExpectedData(command_time + 1.0, -1500, -1010),
+                ExpectedData(command_time + 1.5, -2005, -1010),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=-2000 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, -995, -1005),
+                ExpectedData(command_time + 0.5, -1500, -1005),
+                ExpectedData(command_time + 1.0, -2000, -1005),
+                ExpectedData(command_time + 1.5, -2500, -1005),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+    async def test_track_from_position(self) -> None:
+        async with self.create_emulated_motor():
+            self.emulated_motor_controller.position = 100 * self.conversion_factor
+
+            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            await self.emulated_motor_controller.track(
+                target_position=1100 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, 100, 0),
+                ExpectedData(command_time + 0.5, 590, 1000),
+                ExpectedData(command_time + 1.0, 1090, 1000),
+                ExpectedData(command_time + 1.5, 1590, 1000),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=1600 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, 590, 1000),
+                ExpectedData(command_time + 0.5, 1095, 1010),
+                ExpectedData(command_time + 1.0, 1600, 1010),
+                ExpectedData(command_time + 1.5, 2105, 1010),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=2100 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, 1095, 1010),
+                ExpectedData(command_time + 0.5, 1600, 1005),
+                ExpectedData(command_time + 1.0, 2100, 1005),
+                ExpectedData(command_time + 1.5, 2600, 1005),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+        async with self.create_emulated_motor():
+            self.emulated_motor_controller.position = -100 * self.conversion_factor
+
+            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            await self.emulated_motor_controller.track(
+                target_position=-1100 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, -100, 0),
+                ExpectedData(command_time + 0.5, -590, -1000),
+                ExpectedData(command_time + 1.0, -1090, -1000),
+                ExpectedData(command_time + 1.5, -1590, -1000),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=-1600 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, -590, -1000),
+                ExpectedData(command_time + 0.5, -1095, -1010),
+                ExpectedData(command_time + 1.0, -1600, -1010),
+                ExpectedData(command_time + 1.5, -2105, -1010),
+            ]:
+                await self.assert_position_and_velocity(expected_data)
+
+            command_time = self.t = command_time + 0.5
+            await self.emulated_motor_controller.track(
+                target_position=-2100 * self.conversion_factor, timediff=1.0
+            )
+            for expected_data in [
+                ExpectedData(command_time, -1095, -1010),
+                ExpectedData(command_time + 0.5, -1600, -1005),
+                ExpectedData(command_time + 1.0, -2100, -1005),
+                ExpectedData(command_time + 1.5, -2600, -1005),
             ]:
                 await self.assert_position_and_velocity(expected_data)
