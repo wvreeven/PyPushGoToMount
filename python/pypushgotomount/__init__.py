@@ -11,5 +11,5 @@ from . import (
 )
 from .datetime_util import *
 from .enums import *
-from .lx200_mount import *
 from .observing_location import *
+from .pushgoto_mount import *

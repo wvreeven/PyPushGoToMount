@@ -1,12 +1,12 @@
 {
   "alt": {
-    "module": "pylx200mount.emulation.emulated_motor_controller",
+    "module": "pypushgotomount.emulation.emulated_motor_controller",
     "class_name": "EmulatedMotorController",
     "hub_port": 0,
     "gear_reduction": 0.00005625
   },
   "az": {
-    "module": "pylx200mount.emulation.emulated_motor_controller",
+    "module": "pypushgotomount.emulation.emulated_motor_controller",
     "class_name": "EmulatedMotorController",
     "hub_port": 1,
     "gear_reduction": 0.00005625

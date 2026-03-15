@@ -4,7 +4,7 @@ import pathlib
 from unittest import IsolatedAsyncioTestCase
 
 import numpy as np
-import pylx200mount
+import pypushgotomount
 from PIL import Image
 
 DATA_DIR = pathlib.Path(__file__).parents[1] / "test_data"
@@ -13,8 +13,8 @@ DATA_DIR = pathlib.Path(__file__).parents[1] / "test_data"
 class TestPlateSolver(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         log = logging.getLogger(type(self).__name__)
-        self.camera = pylx200mount.emulation.EmulatedCamera(log=log)
-        self.plate_solver = pylx200mount.plate_solver.PlateSolver(
+        self.camera = pypushgotomount.emulation.EmulatedCamera(log=log)
+        self.plate_solver = pypushgotomount.plate_solver.PlateSolver(
             camera=self.camera, focal_length=25.0, log=log
         )
 

@@ -2,15 +2,15 @@ import logging
 import pathlib
 from unittest import IsolatedAsyncioTestCase, mock
 
-import pylx200mount
+import pypushgotomount
 import pytest
 
 
 class TestLx200CommandResponder(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        with mock.patch("pylx200mount.controller.utils.CONFIG_FILE", pathlib.Path("/does_not_exist")):
+        with mock.patch("pypushgotomount.controller.utils.CONFIG_FILE", pathlib.Path("/does_not_exist")):
             log = logging.getLogger(type(self).__name__)
-            self.responder = pylx200mount.controller.lx200_command_reponder.Lx200CommandResponder(log=log)
+            self.responder = pypushgotomount.controller.lx200_command_reponder.Lx200CommandResponder(log=log)
 
     def assert_ends_in_hash(self, s: str) -> None:
         assert s.endswith("#")
@@ -103,7 +103,7 @@ class TestLx200CommandResponder(IsolatedAsyncioTestCase):
         self.assert_ends_in_hash(site_1_name)
 
     async def test_set_slew_rate(self) -> None:
-        self.responder.cmd = pylx200mount.CommandName.RS.value
+        self.responder.cmd = pypushgotomount.CommandName.RS.value
         await self.responder.set_slew_rate()
 
     async def test_stop_slew(self) -> None:

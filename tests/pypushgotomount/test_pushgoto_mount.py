@@ -2,13 +2,13 @@ import asyncio
 import logging
 import unittest
 
-import pylx200mount
+import pypushgotomount
 
 
-class TestLx200Mount(unittest.IsolatedAsyncioTestCase):
-    async def test_lx200_mount(self) -> None:
+class TestPushGoToMount(unittest.IsolatedAsyncioTestCase):
+    async def test_pushgoto_mount(self) -> None:
         self.log = logging.getLogger(type(self).__name__)
-        async with pylx200mount.LX200Mount(run_forever=False) as self.lx200_mount:
+        async with pypushgotomount.PushGoToMount(run_forever=False) as self.lx200_mount:
             reader, writer = await asyncio.open_connection(host="localhost", port=11880)
             writer.write(b"#")
             await writer.drain()
@@ -46,9 +46,9 @@ class TestLx200Mount(unittest.IsolatedAsyncioTestCase):
             data = await reader.read(1)
             assert data == b"1"
             data = await reader.readuntil(b"#")
-            assert data == pylx200mount.controller.UPDATING_PLANETARY_DATA1.encode("utf8")
+            assert data == pypushgotomount.controller.UPDATING_PLANETARY_DATA1.encode("utf8")
             data = await reader.readuntil(b"#")
-            assert data == pylx200mount.controller.UPDATING_PLANETARY_DATA2.encode("utf8")
+            assert data == pypushgotomount.controller.UPDATING_PLANETARY_DATA2.encode("utf8")
 
             writer.write(b":GR#")
             await writer.drain()

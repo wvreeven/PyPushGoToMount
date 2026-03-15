@@ -2,12 +2,12 @@ import ctypes
 import logging
 from unittest import IsolatedAsyncioTestCase, mock
 
-import pylx200mount
+import pypushgotomount
 
 
 class TestAsiInterface(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        with mock.patch("pylx200mount.asi.asi_interface.ctypes.CDLL") as mock_cdll:
+        with mock.patch("pypushgotomount.asi.asi_interface.ctypes.CDLL") as mock_cdll:
             mock_asi_lib = mock.MagicMock()
             mock_cdll.return_value = mock_asi_lib
             mock_asi_lib.ASIOpenCamera.return_value = 0
@@ -21,7 +21,7 @@ class TestAsiInterface(IsolatedAsyncioTestCase):
             mock_asi_lib.ASIStopVideoCapture.return_value = 0
             mock_asi_lib.ASIGetVideoData.return_value = 0
             self.log = logging.getLogger(type(self).__name__)
-            self.asi_camera = pylx200mount.asi.AsiCamera(log=self.log)
+            self.asi_camera = pypushgotomount.asi.AsiCamera(log=self.log)
 
     async def test_open(self) -> None:
         await self.asi_camera.open()

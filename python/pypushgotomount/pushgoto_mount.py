@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__all__ = ["LX200Mount", "run_lx200_mount"]
+__all__ = ["PushGoToMount", "run_pushgoto_mount"]
 
 import asyncio
 import logging
@@ -14,7 +14,7 @@ from .enums import AQ, COLON, EMPTY_REPLY, HASH, CommandName
 SEND_COMMAND_SLEEP = 0.01
 
 
-class LX200Mount:
+class PushGoToMount:
     def __init__(self, run_forever: bool = True) -> None:
         self.log: logging.Logger = logging.getLogger(type(self).__name__)
 
@@ -133,7 +133,7 @@ class LX200Mount:
                 if len(outputs) > 1:
                     await asyncio.sleep(SEND_COMMAND_SLEEP)
 
-    async def __aenter__(self) -> LX200Mount:
+    async def __aenter__(self) -> PushGoToMount:
         await self.start()
         return self
 
@@ -146,11 +146,11 @@ class LX200Mount:
         await self.stop()
 
 
-async def run_lx200_mount() -> None:
-    async with LX200Mount():
+async def run_pushgoto_mount() -> None:
+    async with PushGoToMount():
         # No need to call any methods.
         pass
 
 
 if __name__ == "__main__":
-    asyncio.run(run_lx200_mount())
+    asyncio.run(run_pushgoto_mount())

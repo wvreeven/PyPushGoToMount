@@ -2,13 +2,13 @@ import math
 from unittest import IsolatedAsyncioTestCase
 
 import numpy
-import pylx200mount
+import pypushgotomount
 import pytest
 
 
 class TestTrajectory(IsolatedAsyncioTestCase):
     async def test_pos(self) -> None:
-        self.trajectory = pylx200mount.motor.Trajectory(max_acceleration=50000.0)
+        self.trajectory = pypushgotomount.motor.Trajectory(max_acceleration=50000.0)
         self.assert_trajectory(curr_pos=0.0, curr_vel=0.0, target_position=0.0)
         self.assert_trajectory(curr_pos=0.0, curr_vel=100000.0, target_position=0.0)
         self.assert_trajectory(curr_pos=0.0, curr_vel=-100000.0, target_position=0.0)
@@ -80,13 +80,13 @@ class TestTrajectory(IsolatedAsyncioTestCase):
                 assert not numpy.iscomplexobj(segment1.start_velocity)
                 assert not numpy.iscomplexobj(segment1.acceleration)
                 assert not numpy.iscomplexobj(segment1.start_time)
-                pos0, vel0 = pylx200mount.motor.accelerated_pos_and_vel(
+                pos0, vel0 = pypushgotomount.motor.accelerated_pos_and_vel(
                     segment0.start_position,
                     segment0.start_velocity,
                     segment0.acceleration,
                     segment1.start_time - segment0.start_time,
                 )
-                pos1, vel1 = pylx200mount.motor.accelerated_pos_and_vel(
+                pos1, vel1 = pypushgotomount.motor.accelerated_pos_and_vel(
                     segment1.start_position,
                     segment1.start_velocity,
                     segment1.acceleration,
