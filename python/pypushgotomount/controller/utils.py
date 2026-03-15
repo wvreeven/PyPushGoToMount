@@ -7,7 +7,7 @@ import typing
 
 import jsonschema
 
-CONFIG_PATH = pathlib.Path.home() / ".config" / "pylx200mount"
+CONFIG_PATH = pathlib.Path.home() / ".config" / "pypushgotomount"
 CONFIG_FILE = CONFIG_PATH / "config.json"
 CAMERA_OFFSETS_FILE = CONFIG_PATH / "camera_offsets.ini"
 JSON_SCHEMA_FILE = pathlib.Path(__file__).parents[0] / "configuration_schema.json"
@@ -16,7 +16,7 @@ JSON_SCHEMA_FILE = pathlib.Path(__file__).parents[0] / "configuration_schema.jso
 def load_config() -> types.SimpleNamespace:
     """Load the configuration file.
 
-    The configuration file is expected to be at ${HOME}/.config/pylx200mount/config.json
+    The configuration file is expected to be at ${HOME}/.config/pypushgotomount/config.json
     If it doesn't exist then a default configuration with emulators only is loaded.
 
     Returns

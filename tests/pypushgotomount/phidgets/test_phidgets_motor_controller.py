@@ -3,14 +3,14 @@ import typing
 from unittest import IsolatedAsyncioTestCase, mock
 
 import astropy.units as u
-import pylx200mount
+import pypushgotomount
 from astropy.coordinates import Angle
 
 
 class TestPhidgetsMotorController(IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.log = logging.getLogger(type(self).__name__)
-        self.pmc = pylx200mount.phidgets.PhidgetsMotorController(
+        self.pmc = pypushgotomount.phidgets.PhidgetsMotorController(
             initial_position=Angle(0.0 * u.deg),
             log=self.log,
             hub_port=0,

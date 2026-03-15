@@ -5,9 +5,9 @@ import logging
 import pathlib
 import sys
 
-from pylx200mount import run_lx200_mount
+from pypushgotomount import run_pushgoto_mount
 
-log_file = pathlib.Path.home() / "pylx200mount_debug.log"
+log_file = pathlib.Path.home() / "pypushgotomount_debug.log"
 
 logging.basicConfig(
     format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
@@ -15,4 +15,4 @@ logging.basicConfig(
     handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
 )
 
-asyncio.run(run_lx200_mount())
+asyncio.run(run_pushgoto_mount())

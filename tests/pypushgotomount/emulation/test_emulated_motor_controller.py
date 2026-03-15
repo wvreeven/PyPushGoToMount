@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from unittest import IsolatedAsyncioTestCase
 
 import astropy.units as u
-import pylx200mount
+import pypushgotomount
 from astropy.coordinates import Angle
 
 
@@ -28,10 +28,10 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
         self.t = 0.0
         self.conversion_factor = Angle(0.0001 * u.deg)
         with unittest.mock.patch(
-            "pylx200mount.emulation.emulated_motor_controller.DatetimeUtil.get_timestamp",
+            "pypushgotomount.emulation.emulated_motor_controller.DatetimeUtil.get_timestamp",
             self.get_timestamp,
         ):
-            async with pylx200mount.emulation.EmulatedMotorController(
+            async with pypushgotomount.emulation.EmulatedMotorController(
                 initial_position=Angle(0.0, u.deg),
                 log=log,
                 conversion_factor=self.conversion_factor,
@@ -44,13 +44,13 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
     async def test_init_emulated_motor(self) -> None:
         log = logging.getLogger(type(self).__name__)
         conversion_factor = Angle(0.0001 * u.deg)
-        emulated_motor_controller = pylx200mount.emulation.EmulatedMotorController(
+        emulated_motor_controller = pypushgotomount.emulation.EmulatedMotorController(
             initial_position=Angle(0.0, u.deg),
             log=log,
             conversion_factor=conversion_factor,
             hub_port=0,
         )
-        assert emulated_motor_controller.name == pylx200mount.motor.BaseMotorController.ALT
+        assert emulated_motor_controller.name == pypushgotomount.motor.BaseMotorController.ALT
         assert not emulated_motor_controller.attached
 
         await emulated_motor_controller.connect()
@@ -95,7 +95,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 25000, 50000),
@@ -109,7 +109,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_from_position(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 475000, 50000),
@@ -123,7 +123,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_to_same_position(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 475000, 50000),
@@ -142,7 +142,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_to_different_position(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 25000, 50000),
@@ -164,7 +164,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_to_different_position_from_pos(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1045000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 475000, 50000),
@@ -188,7 +188,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_to_different_position_from_neg(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(-50.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=50000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, -475000, 50000),
@@ -211,7 +211,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_positive_in_two_steps(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 25000, 50000),
@@ -234,7 +234,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_near_positive(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, 6250, 25000),
@@ -248,7 +248,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_near_positive_and_back(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, 6250, 25000),
@@ -272,7 +272,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-1000000 * self.conversion_factor,
             )
@@ -288,7 +288,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_from_position(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-1000000 * self.conversion_factor,
             )
@@ -307,7 +307,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_to_same_position(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-1000000 * self.conversion_factor,
             )
@@ -333,7 +333,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_to_different_position(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-1000000 * self.conversion_factor,
             )
@@ -359,7 +359,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_to_different_position_from_pos(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(45.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-955000 * self.conversion_factor,
             )
@@ -387,7 +387,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_to_different_position_from_neg(self) -> None:
         async with self.create_emulated_motor(initial_position=Angle(-50.0, u.deg)):
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(
                 target_position=-1050000 * self.conversion_factor,
             )
@@ -416,7 +416,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_far_negative_in_two_steps(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, -25000, -50000),
@@ -438,7 +438,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_near_negative(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, -6250, -25000),
@@ -452,7 +452,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_move_near_negative_and_back(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, -6250, -25000),
@@ -476,7 +476,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_pos_stop_while_at_max_speed(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 25000, 50000),
@@ -494,7 +494,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_pos_stop_while_speeding_up(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, 25000, 50000),
@@ -513,7 +513,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_pos_stop_while_slowing_down(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, 6250, 25000),
@@ -531,7 +531,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_neg_stop_while_at_max_speed(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, -25000, -50000),
@@ -549,7 +549,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_neg_stop_while_speeding_up(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-1000000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 1.0, -25000, -50000),
@@ -568,7 +568,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_neg_stop_while_slowing_down(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.move(target_position=-100000 * self.conversion_factor)
             for expected_data in [
                 ExpectedData(command_time + 0.5, -6250, -25000),
@@ -586,7 +586,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
 
     async def test_track(self) -> None:
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.track(
                 target_position=1000 * self.conversion_factor, timediff=1.0
             )
@@ -623,7 +623,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
                 await self.assert_position_and_velocity(expected_data)
 
         async with self.create_emulated_motor():
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.track(
                 target_position=-1000 * self.conversion_factor, timediff=1.0
             )
@@ -662,7 +662,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
         async with self.create_emulated_motor():
             self.emulated_motor_controller.position = 100 * self.conversion_factor
 
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.track(
                 target_position=1100 * self.conversion_factor, timediff=1.0
             )
@@ -701,7 +701,7 @@ class TestEmulatedMotorController(IsolatedAsyncioTestCase):
         async with self.create_emulated_motor():
             self.emulated_motor_controller.position = -100 * self.conversion_factor
 
-            command_time = self.t = pylx200mount.DatetimeUtil.get_timestamp()
+            command_time = self.t = pypushgotomount.DatetimeUtil.get_timestamp()
             await self.emulated_motor_controller.track(
                 target_position=-1100 * self.conversion_factor, timediff=1.0
             )
