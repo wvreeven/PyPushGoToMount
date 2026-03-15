@@ -5,12 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PyLX200Mount"
 description = "PyLX200Mount"
-author = "Wouter van Reeven"
-author-email = "wouter@van.reeven.nl"
+authors = [
+    { name = "Wouter van Reeven", email = "wouter@van.reeven.nl" }
+]
 license = { text = "GPL" }
 classifiers = ["Programming Language :: Python :: 3"]
 dynamic = ["version"]
-dependencies = ["astropy"]
+dependencies = ["astropy", "Pillow", "jsonschema"]
 
 [tool.setuptools.dynamic]
 version = { attr = "setuptools_scm.get_version" }
@@ -34,4 +35,10 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore:Tried to get polar motions for times after IERS data is valid.:", # Ignore AstropyWarning
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
 ]
