@@ -15,4 +15,8 @@ logging.basicConfig(
     handlers=[logging.FileHandler(log_file), logging.StreamHandler(sys.stdout)],
 )
 
-asyncio.run(run_pushgoto_mount())
+try:
+    asyncio.run(run_pushgoto_mount())
+except KeyboardInterrupt:
+    # Deliberately ignore.
+    pass

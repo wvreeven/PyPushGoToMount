@@ -31,6 +31,8 @@ NINETY = Angle(90.0, u.deg)
 ZERO = Angle(0.0, u.deg)
 # Position loop task interval [sec].
 POSITION_INTERVAL = 0.25
+# Track interval [sec].
+TRACK_INTERVAL = 5.0
 
 
 class MountController:
@@ -55,6 +57,7 @@ class MountController:
 
         # Target RaDec for moves and tracking.
         self.target_radec = SkyCoord(0.0 * u.deg, 0.0 * u.deg)
+        self.track_start_datetime = DatetimeUtil.get_timestamp()
 
         # Position event to set in the position loop. Used by unit tests.
         self.position_event: asyncio.Event = asyncio.Event()
@@ -245,12 +248,14 @@ class MountController:
         if (
             self.motor_controller_az.state == MotorControllerState.TRACKING
             and self.motor_controller_alt.state == MotorControllerState.TRACKING
+            and DatetimeUtil.get_timestamp() - self.track_start_datetime >= TRACK_INTERVAL
         ):
-            fut_timestamp = DatetimeUtil.get_timestamp() + POSITION_INTERVAL
+            self.track_start_datetime = DatetimeUtil.get_timestamp()
+            fut_timestamp = DatetimeUtil.get_timestamp() + 2 * TRACK_INTERVAL
             target_alt_az = await get_altaz_from_radec(self.target_radec, fut_timestamp)
 
-            await self.motor_controller_az.track(target_alt_az.az, POSITION_INTERVAL)
-            await self.motor_controller_alt.track(target_alt_az.alt, POSITION_INTERVAL)
+            await self.motor_controller_az.track(target_alt_az.az, TRACK_INTERVAL)
+            await self.motor_controller_alt.track(target_alt_az.alt, TRACK_INTERVAL)
 
     def check_motor_tracking(self, motor: BaseMotorController) -> None:
         """Check if the provided motor is stopped.
